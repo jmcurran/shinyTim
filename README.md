@@ -56,19 +56,24 @@ likelihood of the parameter given the data—is in the same family
 distributions as the prior. In our specific case, if we assume a Beta
 prior for $p$, then the posterior distribution of $p$ will also be a
 Beta distribution, with the parameters altered by the data. In
-statistics we write: \$ f(p\|n,x)(p\|n, x) g(p) \$ where $f(p|n,x)$ is
-the posterior distribution of $p$ given the data ($x$ and $n$),
-$\cal{L}(p|n, x)$ is the *likelihood* of $p$ given the data, and $g(p)$
-the the probability (density) function that represents our prior belief.
-If \$ g(p) = p<sup>{}(1-p)</sup>{}, \$ and \$ (p\|n, x) =
-p<sup>x(1-p)</sup>{n-x} \$ then it can be shown that \$ f(p\|n,x) = p^{+
-x -1}(1-p)^{+ n - x -1} \$ which we recognise as the probability density
-function for a Beta distribution with parameters
-$\alpha^\prime = \alpha+x$, and $\beta^\prime = \beta+n-x$. This is
-useful because the mean of a Beta distribution with parameters $\alpha$
-and $\beta$ is given by \$ \[p\] = . \$ It is not hard to see therefore,
-that the *posterior mean*, which we might use as point estimate for $p$,
-is given by $$
+statistics we write: $$
+f(p|n,x)\propto \cal{L}(p|n, x) \times g(p)
+$$ where $f(p|n,x)$ is the posterior distribution of $p$ given the data
+($x$ and $n$), $\cal{L}(p|n, x)$ is the *likelihood* of $p$ given the
+data, and $g(p)$ the the probability (density) function that represents
+our prior belief. If $$
+g(p) = \frac{1}{B(\alpha, \beta)}p^{\alpha-1}(1-p)^{\beta-1},
+$$ and $$
+\cal{L}(p|n, x) = p^x(1-p)^{n-x}
+$$ then it can be shown that $$
+f(p|n,x) = \frac{1}{B(\alpha + x, \beta + n - x)}p^{\alpha + x -1}(1-p)^{\beta + n - x -1}
+$$ which we recognise as the probability density function for a Beta
+distribution with parameters $\alpha^\prime = \alpha+x$, and
+$\beta^\prime = \beta+n-x$. This is useful because the mean of a Beta
+distribution with parameters $\alpha$ and $\beta$ is given by $$
+\mathrm{E}[p] = \frac{\alpha}{\alpha+\beta}.
+$$ It is not hard to see therefore, that the *posterior mean*, which we
+might use as point estimate for $p$, is given by $$
 \mathrm{E}[p|n,x] = \frac{\alpha+x}{\alpha+x+\beta+n-x}=\frac{\alpha+x}{\alpha+\beta+n}.
 $$ It is also easy to see that this will always be different from the
 frequentist estimate as it will be *biased* be the prior. However, it is
