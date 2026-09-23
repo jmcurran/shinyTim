@@ -112,6 +112,26 @@ prior is strong (large $\alpha+\beta$) and centred far from the true
 value, the bias dominates and the frequentist estimate does better. As
 $n$ grows, the data swamp the prior and the two estimates converge.
 
+Note that this is a *pre-data* comparison: before any data are observed,
+we are comparing two estimation procedures, so averaging over the
+sampling distribution of $x$ is legitimate even from a Bayesian point of
+view. The argument follows Bolstad and Curran (2017, Section 9.3,
+p. 174).
+
+The details matter for the situations this app was built for. With a
+uniform prior, Beta(1, 1), the posterior mean is pulled towards 1/2, and
+the frequentist estimate actually has the lower MSE when $p$ is close to
+0 or 1. The two MSEs cross at about $p = 0.14$ (and $0.86$) when
+$n = 10$, and as $n$ grows the crossover approaches
+$(1 - 1/\sqrt{2})/2 \approx 0.146$, the smaller root of
+$(1-2p)^2 = 4p(1-p)$. So the uniform-prior posterior mean has the lower
+MSE over roughly the middle 71% of the range, whatever the sample size,
+and the higher MSE in the tails. For tiny probabilities, the advantage
+of the posterior mean comes from using an informative prior that is
+roughly centred on the plausible values of $p$. This is why the app
+lets you specify the prior through its mean and 0.95 quantile, rather
+than defaulting to a uniform prior.
+
 ## What Does This App Do?
 
 It lets users explore different Beta priors, and see the effect they
@@ -133,3 +153,8 @@ My friend, Dr Tim Kalafut, who was asking me about this prior, is named,
 well, Tim. And then I have a *quirky = bad* sense of humor, and given we
 were talking about tiny prior means, and of course given Charles
 Dickens, the pun was obvious (to at least me).
+
+## References
+
+Bolstad, W. M. and Curran, J. M. (2017). *Introduction to Bayesian
+Statistics* (3rd ed.). Hoboken, NJ: Wiley.
