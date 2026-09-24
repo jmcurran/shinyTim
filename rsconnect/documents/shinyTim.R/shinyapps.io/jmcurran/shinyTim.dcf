@@ -5,7 +5,7 @@ account: jmcurran
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 12151502
-bundleId: 12592480
+bundleId: 12597482
 url: https://jmcurran.shinyapps.io/shinyTim/
 version: 1
 asMultiple: FALSE

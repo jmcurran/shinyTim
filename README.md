@@ -129,23 +129,176 @@ MSE over roughly the middle 71% of the range, whatever the sample size,
 and the higher MSE in the tails. For tiny probabilities, the advantage
 of the posterior mean comes from using an informative prior that is
 roughly centred on the plausible values of $p$. This is why the app
-lets you specify the prior through its mean and 0.95 quantile, rather
-than defaulting to a uniform prior.
+lets you build the prior from expert judgement, rather than defaulting
+to a uniform prior.
+
+## Beta Isn't The Only Prior
+
+In forensic work, the prior usually comes from an expert, who might say
+something like: "a priori, I think this might happen about 1 time in
+10,000, but I'm willing to let it be as large as 1 time in 100, with
+probability 0.95." That is two statements: a typical value, and an upper
+value with a probability attached. Two statements are exactly enough to
+pin down a prior from a two-parameter family.
+
+The typical value should be treated as the prior *median* ("it is as
+likely to be rarer than 1 in 10,000 as it is to be more common"), not
+the prior mean. In this region a mean is not just awkward, it is often
+impossible. For any distribution on $[0, 1]$ with mean $\mu$, Markov's
+inequality gives $\Pr(p \geq t) \leq \mu/t$, so the value that $p$ stays
+below with probability $\gamma$ can be at most $\mu/(1-\gamma)$. With a
+mean of 1 in 10,000, no distribution at all can have its 0.95 quantile
+above $20 \times 10^{-4} = 0.002$, and the best a Beta distribution can
+manage is about 0.00058. The expert's statement above cannot be
+represented with a mean of 1 in 10,000, whatever family we choose.
+
+With the median, the statement is easy to represent, and the app does
+so with two families:
+
+-   **Beta.** The app finds the Beta($\alpha$, $\beta$) with the given
+    median and upper quantile numerically. For the statement above this
+    is roughly Beta(0.16, 87). It keeps the arithmetic conjugate.
+-   **Logit-normal.** Here $\mathrm{logit}(p) = \log\{p/(1-p)\}$ has a
+    normal distribution with mean $\mu$ and standard deviation $\sigma$.
+    Because quantiles pass straight through the logit, the expert's two
+    statements give the parameters directly: $$
+    \mu = \mathrm{logit}(\text{median}), \qquad
+    \sigma = \frac{\mathrm{logit}(\text{upper value}) - \mu}{\Phi^{-1}(\gamma)},
+    $$ where $\gamma$ is the probability attached to the upper value. For
+    small $p$ the logit is almost the same as $\log p$, so this is
+    effectively a log-normal prior, which matches the way experts tend to
+    reason in orders of magnitude ("somewhere between 1 in a million and
+    1 in 100"). It is not conjugate, so the app computes the posterior
+    by numerical integration on a grid.
+
+Both priors match everything the expert said, but they are not the same
+distribution, and they imply different things about the values the
+expert did not mention. For the example above, the Beta prior puts the
+probability of a success on the next trial at about 1 in 540, and the
+logit-normal at about 1 in 300. After a study that observed 0 successes
+in 10 trials, the two give about 1 in 610 and 1 in 620. Note that none of
+these is 1 in 10,000: the probability for the next trial is the mean,
+and an expert who allows for values as large as 1 in 100 has, whether
+they realise it or not, pulled the mean well above their typical value.
+
+The part of the prior that matters is the upper tail. The two families
+differ enormously in the lower tail, but that has almost no effect on
+the probability for the next trial, and in an adversarial setting no one
+argues for smaller values anyway. What does matter is the expert's upper
+value and the probability attached to it. Using the same example (0
+successes in 10 trials), the probability for the next trial changes as
+follows when one input is varied and the others are held fixed:
+
+| Input varied | Beta | Logit-normal |
+|---|---|---|
+| Median from 1 in a million to 1 in 1,000 | 0.0014 to 0.0024 | 0.0012 to 0.0024 |
+| Upper value from 1 in 1,000 to 1 in 10 | 0.00025 to 0.0062 | 0.00026 to 0.0035 |
+| Probability for the upper value from 0.90 to 0.99 | 0.0027 to 0.00088 | 0.0027 to 0.00061 |
+
+A thousand-fold change in the median barely doubles the answer, while
+the upper value and its probability drive almost everything. The
+**Sensitivity** tab plots this relationship for the current inputs.
+The two families agree closely when the upper value is modest, and
+separate when it is large, which is where the choice of family itself
+becomes part of the argument.
 
 ## What Does This App Do?
 
-It lets users explore different Beta priors, and see the effect they
-have on the posterior. You can specify the prior in one of two ways:
+It lets users explore priors for a binomial probability, and see their
+effect on the posterior and on predictions. You can specify the prior in
+one of two ways:
 
--   by choosing its mean, $p$, and its 0.95 quantile, $q_{95}$, in which
-    case the app finds the matching $\alpha$ and $\beta$ for you; or
--   by entering $\alpha$ and $\beta$ directly.
+-   **from expert judgement**, by giving a typical value (the median)
+    and an upper value, both as "1 in $N$", together with the
+    probability that the true value lies below the upper value. The app
+    fits both a Beta and a logit-normal prior to these statements, shows
+    the fitted parameters, and flags it if the Beta cannot match them
+    exactly; or
+-   **as a Beta distribution**, by entering $\alpha$ and $\beta$
+    directly (for example, $\alpha = \beta = 1$ for the uniform prior).
 
-You then enter the data (the number of successes, $x$, in $n$ trials),
-and the app plots the prior and posterior densities, shades the
-posterior 95% credible interval, marks the observed proportion $x/n$,
-and tabulates the mean, mode, 0.95 quantile and 95% credible interval of
-both distributions. Setting $n = 0$ shows the prior on its own.
+You then enter the data (the number of successes, $x$, in $n$ trials).
+The **Prior and posterior** tab plots the prior and posterior densities
+on a log scale, and tabulates, for each prior family, the median, the
+upper quantile, the 99th percentile, the chance that $p$ exceeds a
+threshold of your choosing, and the mean, all shown both as
+probabilities and as "1 in $N$". Setting $n = 0$ shows the prior on its
+own.
+
+The **Predictive** tab is built around the quantity we actually need:
+the probability that the *next* trial is a success. In a forensic
+Bayesian network, for example, a node might need the probability that
+foreign DNA is found under a person's fingernails after they held hands
+with someone. That is a probability for a single future event, which is
+the posterior predictive probability $$
+\Pr(\text{success on next trial}|n,x) = \int_0^1 p\,f(p|n,x)\,dp = \frac{\alpha^\prime}{\alpha^\prime+\beta^\prime}.
+$$ for a Beta prior (for the logit-normal prior the integral is evaluated
+numerically). This happens to equal the posterior mean, because the
+probability of a success given $p$ is $p$ itself, so averaging it over
+the posterior gives $\mathrm{E}[p|n,x]$.
+
+The distinction matters because of how this is often done in practice.
+It is common to treat $(x+1)/(n+2)$ as a smoothed version of $x/n$ (in
+the spirit of Laplace smoothing), that is, as the posterior mean used as
+a plug-in *estimate* of $p$. That view invites the question of why the
+mean, rather than the median or mode, and it suggests that any function
+of $p$ can be handled by substituting the estimate. The predictive view
+has neither problem: there is no estimator to choose, and the
+equality with the posterior mean is a property of a single trial, not a
+general rule. It fails as soon as the quantity of interest is not linear
+in $p$. Suppose we observed 0 successes in 10 trials and used a uniform
+prior, so the posterior is Beta(1, 11):
+
+-   The probability of at least one success in the next 5 trials is
+    $1 - B(1, 16)/B(1, 11) = 5/16 \approx 0.313$. Plugging the posterior
+    mean into $1-(1-p)^5$ gives $1 - (11/12)^5 \approx 0.353$ instead.
+-   If the same study informs two events that are conditionally
+    independent given $p$ (say, DNA found under the fingernails of each
+    hand), the probability that both occur is
+    $\mathrm{E}[p^2|n,x] = 2/(12 \times 13) \approx 0.0128$. The
+    plug-in value, $(1/12)^2 \approx 0.0069$, is almost half of that.
+
+In both cases the plug-in approach gives the wrong answer, because it
+ignores our uncertainty about $p$.
+
+Returning to the single-trial case, suppose a published transfer study
+observed foreign DNA under the fingernails in 0 of 10 hand-holding
+experiments. We do not believe the true probability is zero, and the
+predictive probability reflects that: with a uniform prior it is
+$1/12 \approx 0.083$.
+
+That example also shows why the tab includes a prior-sensitivity table.
+When $x = 0$ and $n$ is small, the answer depends heavily on the prior:
+with the same 0 out of 10, the Jeffreys prior, Beta(1/2, 1/2), gives
+$0.5/11 \approx 0.045$. The table shows your prior (or priors) alongside these
+defaults, so you can see how much of the answer comes from the data and
+how much from the prior.
+
+Be careful with priors that have $\alpha$ well below 1. Such a prior
+piles almost all of its probability extremely close to zero and spreads
+the rest thinly over larger values. For example, Beta(0.001, 0.999) has
+a mean of 0.001, but puts about 99% of its probability below $10^{-6}$.
+After 0 successes in 4 trials, the posterior predictive probability is
+0.0002, yet the central 95% credible interval for $p$ is roughly
+$(0, 1.3 \times 10^{-12})$, and only about 0.6% of the posterior lies
+above its mean. The predictive probability is still correct, but it is
+driven almost entirely by the thin tail. The app flags when this
+happens. A prior like this says "$p$ is almost certainly negligible, but
+might be appreciable", which is rarely what anyone intends.
+
+For more than one future trial, the tab can also show the posterior
+predictive distribution of the number of successes, $Y$, in $m$ future
+trials. For a Beta prior this is a beta-binomial distribution: $$
+\Pr(Y=k|n,x) = \binom{m}{k}\frac{B(\alpha^\prime + k, \beta^\prime + m - k)}{B(\alpha^\prime, \beta^\prime)}, \quad k = 0, 1, \ldots, m.
+$$ It is wider than a binomial with the same mean, because it carries
+our uncertainty about $p$ as well as the randomness of the future
+trials. (For the logit-normal prior the app averages the binomial over
+the posterior numerically.) The tab plots this distribution for each
+prior family, and tabulates its mean, standard deviation, a 95%
+prediction interval, and the probability of at least one success, which
+for a Beta prior is $$
+\Pr(Y \geq 1|n,x) = 1 - \frac{B(\alpha^\prime, \beta^\prime + m)}{B(\alpha^\prime, \beta^\prime)}.
+$$
 
 ## What Is Up With The Name?
 
@@ -158,3 +311,7 @@ Dickens, the pun was obvious (to at least me).
 
 Bolstad, W. M. and Curran, J. M. (2017). *Introduction to Bayesian
 Statistics* (3rd ed.). Hoboken, NJ: Wiley.
+
+O'Hagan, A., Buck, C. E., Daneshkhah, A., Eiser, J. R., Garthwaite, P.
+H., Jenkinson, D. J., Oakley, J. E. and Rakow, T. (2006). *Uncertain
+Judgements: Eliciting Experts' Probabilities*. Chichester: Wiley.
